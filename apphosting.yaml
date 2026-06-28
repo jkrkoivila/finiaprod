@@ -46,9 +46,10 @@ env:
 
   # ---- Server-side secret ----
   # The Gemini key is used ONLY by the Express server (server.ts), at runtime.
-  # It is NOT inlined into the client. Backed by Cloud Secret Manager.
-  # Create it with:  firebase apphosting:secrets:set GEMINI_API_KEY
+  # `variable` is the env var the app reads (must stay GEMINI_API_KEY);
+  # `secret` is the Secret Manager secret NAME (changed to gemini-key).
+  # Create it with:  firebase apphosting:secrets:set gemini-key
   - variable: GEMINI_API_KEY
-    secret: GEMINI_API_KEY
+    secret: gemini-key
     availability:
       - RUNTIME
