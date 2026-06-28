@@ -23,27 +23,26 @@ env:
   # present during build. They are public (shipped in the browser bundle anyway),
   # so plain values committed here are fine. Paste your values from .env.local.
   - variable: VITE_FIREBASE_API_KEY
-    value: REPLACE_WITH_VALUE_FROM_.env.local
+    value: AIzaSyA6o_GUXJM9gXRMagBLMSuqLbUFLDAH39w
     availability: [BUILD]
   - variable: VITE_FIREBASE_AUTH_DOMAIN
-    value: REPLACE_WITH_VALUE_FROM_.env.local
+    value: gen-lang-client-0144814356.firebaseapp.com
     availability: [BUILD]
   - variable: VITE_FIREBASE_PROJECT_ID
-    value: REPLACE_WITH_VALUE_FROM_.env.local
+    value: gen-lang-client-0144814356
     availability: [BUILD]
   - variable: VITE_FIREBASE_STORAGE_BUCKET
-    value: REPLACE_WITH_VALUE_FROM_.env.local
+    value: gen-lang-client-0144814356.firebasestorage.app
     availability: [BUILD]
   - variable: VITE_FIREBASE_MESSAGING_SENDER_ID
-    value: REPLACE_WITH_VALUE_FROM_.env.local
+    value: "762990677270"
     availability: [BUILD]
   - variable: VITE_FIREBASE_APP_ID
-    value: REPLACE_WITH_VALUE_FROM_.env.local
+    value: "1:762990677270:web:2e2b09eb0c871daf1d5437"
     availability: [BUILD]
-  # Web push VAPID key (only needed if you want FCM web push; safe to leave as-is if unused).
-  - variable: VITE_FIREBASE_VAPID_KEY
-    value: REPLACE_WITH_VALUE_OR_LEAVE_BLANK
-    availability: [BUILD]
+  # Web push VAPID key — not set yet. FCM web push stays off until you add it
+  # (Firebase console -> Project settings -> Cloud Messaging -> Web Push certificates).
+  # Everything else works without it.
 
   # ---- Server-side secret ----
   # The Gemini key is used ONLY by the Express server (server.ts), at runtime.
