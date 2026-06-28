@@ -1,0 +1,14 @@
+{
+  "firestore": {
+    "database": "ai-studio-0e625a14-b1ac-4ee9-a947-782072cf06bc",
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs20",
+    "ignore": ["node_modules", ".git", ".env", ".env.*", "*.md", "**/*.local"]
+  }
+}

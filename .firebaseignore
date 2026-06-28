@@ -1,0 +1,10 @@
+# Never ship these to Firebase (App Hosting, Functions, or Hosting uploads).
+.env
+.env.*
+!.env.example
+*.md
+.claude/
+.git/
+node_modules/
+coverage/
+scratchpad/

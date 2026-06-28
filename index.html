@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Finia — Your AI for deadlines, money, and tax</title>
+    <meta
+      name="description"
+      content="Finia is an AI life assistant that manages deadlines, money, and tax in one place for Indian users."
+    />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1B3A6B" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Finia" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- Apply the saved theme before paint to avoid a light flash on dark setups. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("finia-theme") || "light";
+          var dark =
+            t === "dark" ||
+            (t === "system" &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

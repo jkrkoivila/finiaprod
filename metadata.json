@@ -1,0 +1,6 @@
+{
+  "name": "Finia",
+  "description": "An AI life assistant managing deadlines, money, and tax in one place for Indian users.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

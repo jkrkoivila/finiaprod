@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+/* Class-based dark mode (Tailwind v4): `dark:` utilities apply under .dark on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Finia brand tokens — exposed as Tailwind theme colours (bg-navy, text-pulse, …) */
+@theme {
+  --color-navy: #1b3a6b;
+  --color-pulse: #2ba8e0;
+  --color-task: #2563eb;
+  --color-finance: #0f766e;
+  --color-tax: #6d28d9;
+  --color-crisis: #e24b4a;
+  --color-surface: #f3f4f6;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  --card: #ffffff; /* card / panel surface */
+  --line: rgba(0, 0, 0, 0.15); /* default hairline border */
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   DARK THEME
+   Strategy: flip structural surfaces by remapping the utilities the whole app
+   already uses, so theming stays consistent everywhere without per-element edits.
+   Brand colours keep their identity — their *backgrounds* are untouched
+   (sidebar/buttons stay navy etc.); only brand *text* is brightened for contrast.
+   ───────────────────────────────────────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+
+  /* Page background — `bg-surface` and the <body> both reference this token,
+     so the whole canvas flips automatically. */
+  --color-surface: #0e1420;
+
+  --card: #1a2230;
+  --line: rgba(255, 255, 255, 0.16);
+
+  /* Slate text ramp inverted for legibility on dark surfaces. Token overrides
+     also cover hover:/placeholder: variants and the few bg-slate-* pills. */
+  --color-slate-800: #e7ebf2;
+  --color-slate-700: #d7deea;
+  --color-slate-600: #c6cfdd;
+  --color-slate-500: #9fabbe;
+  --color-slate-400: #8995a9;
+  --color-slate-300: #6b7689;
+  --color-slate-200: #3a4357;
+  --color-slate-100: #2a3344;
+}
+
+/* Card / panel surfaces (solid white only — bg-white/10 etc. alpha tints on navy
+   are intentional highlights and are left alone). */
+.dark .bg-white {
+  background-color: var(--card);
+}
+
+/* Hairline borders → light alpha */
+.dark .border-black\/5 {
+  border-color: rgba(255, 255, 255, 0.06);
+}
+.dark .border-black\/10 {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+.dark .border-black\/15 {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.dark .divide-black\/5 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Brand text legibility on dark — backgrounds (bg-navy/bg-finance/…) keep identity. */
+.dark .text-navy {
+  color: #dbe4f3;
+}
+.dark .hover\:text-navy:hover {
+  color: #ffffff;
+}
+.dark .text-finance {
+  color: #2dd4bf;
+}
+.dark .text-tax {
+  color: #a78bfa;
+}
+.dark .text-task {
+  color: #60a5fa;
+}
+
+/* Navy focus rings are invisible on dark inputs — use pulse blue instead. */
+.dark .focus\:border-navy:focus {
+  border-color: var(--color-pulse);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-surface);
+  color: #1f2937; /* slate-800 */
+  font-family: var(--font-sans);
+  font-weight: 400; /* brand: only 400 / 500 */
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.dark body {
+  color: #e7ebf2;
+}
+
+/* Shared compact input style (used by forms) */
+.inp {
+  width: 100%;
+  height: 2.25rem;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  border: 0.5px solid var(--line);
+  font-size: 12px;
+  background: var(--card);
+  color: inherit;
+  outline: none;
+}
+.inp:focus {
+  border-color: #1b3a6b;
+}
+.dark .inp:focus {
+  border-color: var(--color-pulse);
+}
+
+/* Thin / hidden scrollbars to keep the flat aesthetic */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 9999px;
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile document keyed by UID",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A user-specific deadline or task",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "category": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "priority": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "title", "dueDate", "category", "completed", "priority", "userId"]
+    },
+    "Bill": {
+      "title": "Bill",
+      "description": "A user bill statement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "payee": { "type": "string" },
+        "amount": { "type": "number" },
+        "dueDate": { "type": "string" },
+        "paid": { "type": "boolean" },
+        "category": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "payee", "amount", "dueDate", "paid", "category", "userId"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A financial transaction or cashbook entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["id", "description", "amount", "type", "category", "date", "userId"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "A stored compliance document meta",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "size": { "type": "string" },
+        "uploadedAt": { "type": "string" },
+        "type": { "type": "string" },
+        "userId": { "type": "string" },
+        "fileData": { "type": "string" }
+      },
+      "required": ["id", "name", "size", "uploadedAt", "type", "userId"]
+    },
+    "TaxProfile": {
+      "title": "TaxProfile",
+      "description": "User tax profile and input parameters",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "annualIncome": { "type": "number" },
+        "investments80C": { "type": "number" },
+        "otherDeductions": { "type": "number" }
+      },
+      "required": ["userId", "annualIncome", "investments80C", "otherDeductions"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "User profiles collection"
+    },
+    "tasks": {
+      "schema": "Task",
+      "description": "User tasks"
+    },
+    "bills": {
+      "schema": "Bill",
+      "description": "User bills"
+    },
+    "transactions": {
+      "schema": "Transaction",
+      "description": "User cashbook entries"
+    },
+    "documents": {
+      "schema": "Document",
+      "description": "User uploaded documents meta"
+    },
+    "taxProfile": {
+      "schema": "TaxProfile",
+      "description": "User tax profile variables"
+    }
+  }
+}

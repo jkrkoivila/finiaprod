@@ -1,0 +1,142 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function uid() {
+      return request.auth.uid;
+    }
+    // Admin role is read from the caller's own user doc. Role is set manually in
+    // Firestore — it can never be granted from the client (see users rules below).
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(uid()))
+        && get(/databases/$(database)/documents/users/$(uid())).data.role == 'admin';
+    }
+    // Ownership for per-user collections (each doc carries a userId field).
+    function ownsNew() {
+      return isSignedIn() && request.resource.data.userId == uid();
+    }
+    function ownsExisting() {
+      return isSignedIn() && resource.data.userId == uid();
+    }
+
+    // ── Default deny ─────────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ── users ────────────────────────────────────────────────────────────
+    // A user reads/writes only their own profile. Admins can read any profile
+    // and list the whole collection. No one can self-promote to admin.
+    match /users/{userId} {
+      allow get: if isSignedIn() && (uid() == userId || isAdmin());
+      allow list: if isAdmin();
+
+      // Create own profile only, and only with role 'user'.
+      allow create: if isSignedIn()
+        && uid() == userId
+        && request.resource.data.role == 'user';
+
+      // Update own profile but role must stay unchanged (admins may change anything).
+      // The default admin can never be suspended (even by another admin).
+      allow update: if (isAdmin()
+            && !(resource.data.isDefaultAdmin == true && request.resource.data.suspended == true))
+        || (isSignedIn()
+            && uid() == userId
+            && request.resource.data.role == resource.data.role);
+
+      // Admins may delete users, except the protected default admin account.
+      allow delete: if isAdmin() && resource.data.isDefaultAdmin != true;
+    }
+
+    // ── systemSettings ───────────────────────────────────────────────────
+    // Readable by every signed-in user (feature flags, tax slabs); admin writes only.
+    match /systemSettings/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── Per-user data collections ────────────────────────────────────────
+    // tasks/bills also allow admin reads so the admin dashboard can aggregate
+    // totals; create/update/delete remain owner-only.
+    match /tasks/{id} {
+      allow read: if ownsExisting() || isAdmin();
+      allow delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+    match /bills/{id} {
+      allow read: if ownsExisting() || isAdmin();
+      allow delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+    match /transactions/{id} {
+      allow read, delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+    match /documents/{id} {
+      allow read, delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+    match /receivables/{id} {
+      allow read, delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+    match /subscriptions/{id} {
+      allow read, delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+    match /notifications/{id} {
+      allow read, delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+
+    // ── recurring payments (templates) + their instances ─────────────────
+    match /recurringPayments/{id} {
+      allow read, delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+    match /paymentInstances/{id} {
+      allow read, delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+
+    // ── fixed deposits + their income payout schedule ────────────────────
+    match /fixedDeposits/{id} {
+      allow read, delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+    match /fdIncomeSchedule/{id} {
+      allow read, delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+
+    // ── crisis triage cache (keyed by uid_<clusterHash>) ─────────────────
+    match /crisisTriage/{id} {
+      allow read, delete: if ownsExisting();
+      allow create, update: if ownsNew();
+    }
+
+    // ── taxProfile ───────────────────────────────────────────────────────
+    // Keyed by uid (one doc per user). Owner-only access.
+    match /taxProfile/{userId} {
+      allow read, write: if isSignedIn() && uid() == userId;
+    }
+
+    // ── calendarSync ───────────────────────────────────────────────────────
+    // Keyed by uid. Stores the Finia-item → Google Calendar eventId map for de-dup.
+    match /calendarSync/{userId} {
+      allow read, write: if isSignedIn() && uid() == userId;
+    }
+
+    // ── fcmTokens ────────────────────────────────────────────────────────
+    // Keyed by uid. Device push tokens + reminder lead prefs for the scheduled function.
+    match /fcmTokens/{userId} {
+      allow read, write: if isSignedIn() && uid() == userId;
+    }
+  }
+}

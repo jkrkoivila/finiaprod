@@ -1,0 +1,16 @@
+{
+  "name": "Finia — Your AI for deadlines, money, and tax",
+  "short_name": "Finia",
+  "description": "An AI life assistant that manages deadlines, money, and tax in one place for Indian users.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F3F4F6",
+  "theme_color": "#1B3A6B",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
