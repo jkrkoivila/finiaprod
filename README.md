@@ -10,9 +10,9 @@ Built for the **Vibe2Ship Hackathon · June 2026 · Problem Statement 1 — The 
 
 ## Live application
 
-**Deployed URL:** `[paste your Cloud Run / Firebase Hosting URL here]`
+**Deployed URL:** https://finiaapp--gen-lang-client-0144814356.asia-southeast1.hosted.app/
 
-**Project description (Google Doc):** `[paste your Google Doc link here]`
+**Project description (Google Doc):** https://docs.google.com/document/d/1GHAna-95PltqdBNO3RA03ywjhARi9j-P890UWCWtnkI/edit?tab=t.0
 
 > Both links must remain active throughout the evaluation period.
 
@@ -165,7 +165,7 @@ Finia fixes this in one conversation.
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/[your-username]/finia.git
+git clone https://github.com/jkrkoivila/finiaprod.git
 cd finia
 ```
 
