@@ -18,6 +18,30 @@ env:
       - BUILD
       - RUNTIME
 
+  # ---- AI backend (Vertex AI in production) ----
+  # server.ts makeGenAI() reads GEMINI_BACKEND to choose its Gemini client. In
+  # production we use FULL Vertex AI with the App Hosting runtime service account
+  # (Application Default Credentials) — no API key is sent. One-time setup before
+  # the first deploy with this config:
+  #   1. Enable billing + the Vertex AI API (aiplatform.googleapis.com) on the project.
+  #   2. Grant the App Hosting backend's runtime service account roles/aiplatform.user:
+  #        gcloud projects add-iam-policy-binding gen-lang-client-0144814356 \
+  #          --member="serviceAccount:<RUNTIME_SA_EMAIL>" --role="roles/aiplatform.user"
+  #      (find <RUNTIME_SA_EMAIL> in Firebase console -> App Hosting -> backend -> Settings)
+  # Docs: https://firebase.google.com/docs/app-hosting/configure
+  - variable: GEMINI_BACKEND
+    value: vertex
+    availability:
+      - RUNTIME
+  - variable: GOOGLE_CLOUD_PROJECT
+    value: gen-lang-client-0144814356
+    availability:
+      - RUNTIME
+  - variable: VERTEX_LOCATION
+    value: us-central1
+    availability:
+      - RUNTIME
+
   # ---- Public Firebase web config ----
   # Vite inlines VITE_* into the CLIENT bundle at BUILD time, so these MUST be
   # present during build. They are public (shipped in the browser bundle anyway),
@@ -44,7 +68,9 @@ env:
   # (Firebase console -> Project settings -> Cloud Messaging -> Web Push certificates).
   # Everything else works without it.
 
-  # ---- Server-side secret ----
+  # ---- Server-side secret (only used when GEMINI_BACKEND=aistudio) ----
+  # Ignored under the vertex / vertex-express backends above. Kept so you can fall
+  # back to the AI Studio key by flipping GEMINI_BACKEND to "aistudio".
   # The Gemini key is used ONLY by the Express server (server.ts), at runtime.
   # `variable` is the env var the app reads (must stay GEMINI_API_KEY);
   # `secret` is the Secret Manager secret NAME (changed to gemini-key).

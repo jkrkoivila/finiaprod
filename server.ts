@@ -11,15 +11,82 @@ const PORT = Number(process.env.PORT) || 3000;
 
 app.use(express.json());
 
-// Gemini runs server-side only. Without a key we fall back to a heuristic parse.
-const ai =
-  process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY"
-    ? new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-    : null;
+// ── Gemini client ────────────────────────────────────────────────────────────
+// Gemini runs server-side only. The SAME @google/genai client speaks three
+// backends; GEMINI_BACKEND selects one. Every call site below is backend-agnostic
+// (model id `gemini-2.5-flash` is identical across all three), so only this block
+// changes. Without usable credentials, `ai` is null and each endpoint falls back
+// to its heuristic / canned response.
+//
+//   aistudio        Gemini API (AI Studio key)         { apiKey }
+//   vertex-express  Vertex AI — Express mode (API key)  { vertexai:true, apiKey }
+//   vertex          Vertex AI — project + ADC creds     { vertexai:true, project, location }
+type GeminiBackend = "aistudio" | "vertex-express" | "vertex";
+
+const GEMINI_BACKEND = (process.env.GEMINI_BACKEND || "aistudio").trim() as GeminiBackend;
+
+// A placeholder key (from .env.example) counts as "no key".
+function hasKey(v?: string): v is string {
+  return !!v && !/^MY_/.test(v);
+}
+
+function makeGenAI(): { client: GoogleGenAI | null; backend: GeminiBackend | "none"; reason?: string } {
+  try {
+    switch (GEMINI_BACKEND) {
+      case "vertex-express": {
+        // Express mode: an API key against Vertex — no project/location/IAM needed.
+        const apiKey = process.env.VERTEX_API_KEY || process.env.GEMINI_API_KEY;
+        if (!hasKey(apiKey)) return { client: null, backend: "none", reason: "no VERTEX_API_KEY" };
+        return { client: new GoogleGenAI({ vertexai: true, apiKey }), backend: "vertex-express" };
+      }
+      case "vertex": {
+        // Full Vertex: Application Default Credentials (App Hosting / Cloud Run service
+        // account in prod; GOOGLE_APPLICATION_CREDENTIALS locally). No API key.
+        const project = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
+        const location = process.env.VERTEX_LOCATION || "us-central1";
+        if (!project) return { client: null, backend: "none", reason: "no GOOGLE_CLOUD_PROJECT" };
+        return { client: new GoogleGenAI({ vertexai: true, project, location }), backend: "vertex" };
+      }
+      case "aistudio":
+      default: {
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!hasKey(apiKey)) return { client: null, backend: "none", reason: "no GEMINI_API_KEY" };
+        return { client: new GoogleGenAI({ apiKey }), backend: "aistudio" };
+      }
+    }
+  } catch (err) {
+    return { client: null, backend: "none", reason: (err as Error)?.message };
+  }
+}
+
+const { client: ai, backend: activeBackend, reason: aiReason } = makeGenAI();
+console.log(
+  `[gemini] requested=${GEMINI_BACKEND} active=${activeBackend}` +
+    (ai ? "" : ` (fallback mode — ${aiReason})`)
+);
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", service: "finia", gemini: !!ai, time: new Date().toISOString() });
+  res.json({
+    status: "ok",
+    service: "finia",
+    gemini: !!ai,
+    backend: activeBackend,
+    time: new Date().toISOString(),
+  });
 });
+
+// Maps a raw provider/SDK error to one short, user-facing sentence. Production
+// users must never see raw Gemini/Vertex JSON (quota blobs, endpoints, stack traces).
+// The full error is still console.error'd server-side for debugging.
+function friendlyAiError(err: any): string {
+  const status = err?.status ?? err?.code;
+  const msg = String(err?.message || "");
+  if (status === 429 || /RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(msg))
+    return "i'm getting a lot of requests right now — give me a few seconds and try again.";
+  if (status === 401 || status === 403 || /PERMISSION_DENIED|UNAUTHENTICATED/i.test(msg))
+    return "i can't reach my ai service at the moment — please try again shortly.";
+  return "something went wrong on my side — please try again.";
+}
 
 // ── Natural-language task parsing ──
 function addDaysISO(today: string, n: number): string {
@@ -308,7 +375,8 @@ refer to this when answering.`;
     res.end();
   } catch (err: any) {
     console.error("chat error:", err);
-    sse(res, { error: err.message || "chat failed" });
+    sse(res, { error: friendlyAiError(err) });
+    sse(res, "[DONE]");
     res.end();
   }
 });
@@ -479,7 +547,8 @@ the user's figures: ${JSON.stringify(context || {})}.`;
     res.end();
   } catch (err: any) {
     console.error("tax-ai-expert error:", err);
-    sse(res, { error: err.message || "tax chat failed" });
+    sse(res, { error: friendlyAiError(err) });
+    sse(res, "[DONE]");
     res.end();
   }
 });
@@ -651,6 +720,8 @@ app.post("/api/gmail/sync", async (req, res) => {
     const uniqueFresh = Array.from(new Set(candidateIds.filter((id) => !seen.has(id))));
     const truncated = uniqueFresh.length > MAX_MESSAGES_PER_SYNC;
     const toProcess = uniqueFresh.slice(0, MAX_MESSAGES_PER_SYNC);
+    console.log('[gmail-sync] historyId=', historyId || null, 'branch=', mode,
+      'candidates=', candidateIds.length, 'fresh=', uniqueFresh.length, 'processing=', toProcess.length);
     log.push(`mode=${mode} candidates=${candidateIds.length} fresh=${uniqueFresh.length} processing=${toProcess.length}${truncated ? " (capped)" : ""}`);
 
     const processedThisRun: string[] = [];
@@ -728,7 +799,7 @@ app.post("/api/gmail/sync", async (req, res) => {
       }
     }
 
-    res.json({ ...findings, historyId: newHistoryId, processedIds: processedThisRun, scanned: candidateIds.length, processed: toProcess.length, truncated, paths, log });
+    res.json({ ...findings, historyId: newHistoryId, historyReset, processedIds: processedThisRun, scanned: candidateIds.length, processed: toProcess.length, truncated, paths, log });
   } catch (err: any) {
     console.error("gmail sync error:", err);
     res.status(500).json({ error: "Gmail sync failed: " + (err?.message || err) });
