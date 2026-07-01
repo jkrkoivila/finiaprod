@@ -155,11 +155,27 @@ export default function DocumentsView({ documents, loading, extract, commit, rem
 
       {/* Filter */}
       <div className="flex flex-wrap gap-1.5">
-        {(["all", "imported", "needs_review", "uncategorized", "unreadable", "locked"] as (DocStatus | "all")[]).map((s) => (
-          <button key={s} onClick={() => setFilter(s)} className={`h-7 px-2.5 rounded-full text-[11px] border-[0.5px] capitalize transition-colors ${filter === s ? "border-navy bg-navy/5 text-navy font-medium" : "border-black/10 text-slate-500 hover:text-navy"}`}>
-            {s === "all" ? "All" : STATUS_META[s as DocStatus].label}
-          </button>
-        ))}
+        {(["all", "imported", "needs_review", "uncategorized", "unreadable", "locked"] as (DocStatus | "all")[]).map((s) => {
+          const count = s === "needs_review" ? documents.filter((d) => d.status === "needs_review").length : 0;
+          return (
+            <button
+              key={s}
+              onClick={() => setFilter(s)}
+              className={`h-7 px-2.5 rounded-full text-[11px] border-[0.5px] capitalize transition-colors flex items-center gap-1 ${
+                filter === s ? "border-navy bg-navy/5 text-navy font-medium" : "border-black/10 text-slate-500 hover:text-navy"
+              }`}
+            >
+              {s === "all" ? "All" : STATUS_META[s as DocStatus].label}
+              {s === "needs_review" && count > 0 && (
+                <span className={`text-[9px] font-medium px-1 py-0.5 rounded-full leading-none ${
+                  filter === "needs_review" ? "bg-[#D97706] text-white" : "bg-[#D97706]/15 text-[#D97706]"
+                }`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Library */}

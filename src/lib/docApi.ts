@@ -39,8 +39,16 @@ export async function extractDocument(file: File): Promise<ExtractResult> {
 }
 
 // ── Gmail ──
+// We use a DEDICATED provider here (separate from the main sign-in flow) with
+// prompt='consent' + access_type='offline'. This forces the OAuth screen to show
+// the gmail.readonly checkbox even when the user already has a cached Google
+// credential — critical for accounts that originally signed in before that scope
+// was added to the app.
 export async function getGmailAccessToken(): Promise<string> {
-  const result = await signInWithPopup(auth, googleProvider);
+  const gmailProvider = new GoogleAuthProvider();
+  gmailProvider.addScope("https://www.googleapis.com/auth/gmail.readonly");
+  gmailProvider.setCustomParameters({ prompt: "consent", access_type: "offline" });
+  const result = await signInWithPopup(auth, gmailProvider);
   const cred = GoogleAuthProvider.credentialFromResult(result);
   if (!cred?.accessToken) throw new Error("Couldn't get Gmail access — please allow it and retry.");
   return cred.accessToken;

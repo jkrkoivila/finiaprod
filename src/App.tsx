@@ -79,6 +79,8 @@ export default function App() {
   const [syncing, setSyncing] = useState(false);
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [syncError, setSyncError] = useState(false);
+  // Detail line for the TopBar (branch + scan count) — cleared on each new sync.
+  const [syncDetail, setSyncDetail] = useState<string | null>(null);
   const { settings } = useSystemSettings();
 
   // Apply the user's theme (light / dark / system). Falls back to the last choice
@@ -252,7 +254,7 @@ export default function App() {
           commit={async () => ({ id: "x", status: "imported", duplicate: false })}
           remove={ok}
           summary={async () => ({ counts: {}, total: 1, hasManualEdits: false, text: "This will remove the file and 1 bill." })}
-          syncGmail={async () => ({ counts: { bills: 0, deadlines: 0, receipts: 0, subscriptions: 0 }, total: 0, duplicates: 0, findings: { bills: [], deadlines: [], receipts: [], subscriptions: [] } })}
+          syncGmail={async () => ({ counts: { bills: 0, deadlines: 0, receipts: 0, subscriptions: 0 }, total: 0, duplicates: 0, branch: "first-90d", messagesScanned: 0, findings: { bills: [], deadlines: [], receipts: [], subscriptions: [] } })}
         />
       );
     }
@@ -403,10 +405,12 @@ export default function App() {
     setSyncing(true);
     setSyncError(false);
     setSyncNote(null);
+    setSyncDetail(null);
     try {
       const r = await runGmailSync(user.uid);
       setLastSynced(new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
-      setSyncNote(describeSync(r.counts));
+      setSyncNote(describeSync(r.counts, r.messagesScanned));
+      setSyncDetail(`${r.branch} · scanned ${r.messagesScanned} msg${r.messagesScanned === 1 ? "" : "s"}`);
     } catch (e: any) {
       setSyncError(true);
       setSyncNote(e instanceof RateLimitError ? e.message : e?.message || "Sync failed — try again.");
@@ -450,6 +454,7 @@ export default function App() {
           syncing={syncing}
           note={syncNote}
           noteError={syncError}
+          syncDetail={syncDetail}
           onSync={handleSync}
           onAddTask={() => navigate("/tasks")}
         />

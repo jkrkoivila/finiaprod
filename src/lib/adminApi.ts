@@ -10,6 +10,7 @@ export interface AdminUser {
   photo?: string;
   role?: "user" | "admin";
   onboarded?: boolean;
+  tourCompleted?: boolean;
   plan?: string;
   suspended?: boolean;
   isDefaultAdmin?: boolean;
@@ -85,7 +86,8 @@ export const suspendUser = (user: AdminUser, suspended: boolean) => {
   if (user.isDefaultAdmin) return Promise.reject(new Error(PROTECTED_ADMIN_ERROR));
   return updateDoc(doc(db, "users", user.uid), { suspended });
 };
-export const resetOnboarding = (uid: string) => updateDoc(doc(db, "users", uid), { onboarded: false });
+export const resetOnboarding = (uid: string) =>
+  updateDoc(doc(db, "users", uid), { onboarded: false, tourCompleted: false });
 export const changePlan = (uid: string, plan: string) => updateDoc(doc(db, "users", uid), { plan });
 export const deleteUserDoc = (user: AdminUser) => {
   if (user.isDefaultAdmin) return Promise.reject(new Error(PROTECTED_ADMIN_ERROR));

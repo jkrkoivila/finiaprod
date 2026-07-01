@@ -17,6 +17,14 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/users/$(uid()))
         && get(/databases/$(database)/documents/users/$(uid())).data.role == 'admin';
     }
+    // Returns true when a write targets sensitive fields (role, suspended, plan) on
+    // the protected default-admin account. Used to prevent any admin from accidentally
+    // (or maliciously) locking out or demoting the default admin via a client write.
+    function isProtectedAdminMutation() {
+      return resource.data.isDefaultAdmin == true
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['role', 'status', 'suspended', 'plan', 'tier']);
+    }
     // Ownership for per-user collections (each doc carries a userId field).
     function ownsNew() {
       return isSignedIn() && request.resource.data.userId == uid();
@@ -43,15 +51,26 @@ service cloud.firestore {
         && request.resource.data.role == 'user';
 
       // Update own profile but role must stay unchanged (admins may change anything).
-      // The default admin can never be suspended (even by another admin).
-      allow update: if (isAdmin()
-            && !(resource.data.isDefaultAdmin == true && request.resource.data.suspended == true))
+      // Admins may update any other user EXCEPT:
+      //   • touching sensitive fields on the protected default-admin account
+      // Self-updates are allowed EXCEPT:
+      //   • changing role (prevents self-promotion or demotion from the client)
+      allow update:
+        if (isAdmin() && !isProtectedAdminMutation())
         || (isSignedIn()
             && uid() == userId
+            // role must not change at all — blocks both self-promotion and self-demotion
             && request.resource.data.role == resource.data.role);
 
       // Admins may delete users, except the protected default admin account.
       allow delete: if isAdmin() && resource.data.isDefaultAdmin != true;
+      // ── syncRuns sub-collection ──────────────────────────────────────────
+      // One document per Gmail sync run. Written by the client after each sync so
+      // the user can see "Scanned 247 messages, 0 matched" instead of ambiguous
+      // "No new items found". Read-write by the owning user only.
+      match /syncRuns/{runId} {
+        allow read, write: if isSignedIn() && uid() == userId;
+      }
     }
 
     // ── systemSettings ───────────────────────────────────────────────────

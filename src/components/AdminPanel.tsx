@@ -16,6 +16,8 @@ interface AdminPanelProps {
   onChangePlan: (uid: string, plan: string) => void | Promise<void>;
   onDeleteUser: (user: AdminUser) => void | Promise<void>;
   onExit: () => void;
+  /** The currently-in-flight action key (e.g. "suspend:uid"). Disables matching buttons. */
+  pendingKey?: string | null;
 }
 
 type Tab = "dashboard" | "users" | "settings";
@@ -90,7 +92,7 @@ function Dashboard({ stats, taskCount, billCount }: AdminPanelProps) {
   );
 }
 
-function UsersTab({ users, onSuspend, onResetOnboarding, onChangePlan, onDeleteUser }: AdminPanelProps) {
+function UsersTab({ users, onSuspend, onResetOnboarding, onChangePlan, onDeleteUser, pendingKey }: AdminPanelProps) {
   const [q, setQ] = useState("");
   const [confirm, setConfirm] = useState<AdminUser | null>(null);
   const filtered = useMemo(() => {
@@ -113,25 +115,65 @@ function UsersTab({ users, onSuspend, onResetOnboarding, onChangePlan, onDeleteU
             </tr>
           </thead>
           <tbody>
-            {filtered.map((u) => (
-              <tr key={u.uid} className={`border-b-[0.5px] border-black/5 ${u.suspended ? "opacity-50" : ""}`}>
-                <td className="px-3 py-2"><div className="text-navy font-medium flex items-center gap-1.5">{u.name || "—"}{u.isDefaultAdmin && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-tax/10 text-tax inline-flex items-center gap-0.5"><ShieldCheck size={10} /> Protected</span>}{u.suspended && <span className="text-[10px] text-crisis">suspended</span>}</div><div className="text-slate-400">{u.email}</div></td>
-                <td className="px-3 py-2 text-slate-500">{fmtDate(u.createdAt)}</td>
-                <td className="px-3 py-2 text-slate-500">{fmtDate(u.lastActive)}</td>
-                <td className="px-3 py-2">{u.onboarded ? <span className="text-finance">Yes</span> : <span className="text-slate-400">No</span>}</td>
-                <td className="px-3 py-2 capitalize">{u.plan || "free"}</td>
-                <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${u.role === "admin" ? "bg-tax/10 text-tax" : "bg-slate-100 text-slate-500"}`}>{u.role || "user"}</span></td>
-                <td className="px-3 py-2">
-                  <div className="flex items-center justify-end gap-1">
-                    {/* Default admin: Suspend + Delete are hidden (protected). */}
-                    {!u.isDefaultAdmin && <IconBtn title={u.suspended ? "Unsuspend" : "Suspend"} onClick={() => onSuspend(u, !u.suspended)}><Ban size={14} /></IconBtn>}
-                    <IconBtn title="Reset onboarding" onClick={() => onResetOnboarding(u.uid)}><RotateCcw size={14} /></IconBtn>
-                    <IconBtn title="Toggle plan" onClick={() => onChangePlan(u.uid, (u.plan || "free") === "free" ? "pro" : "free")}><ArrowLeftRight size={14} /></IconBtn>
-                    {!u.isDefaultAdmin && <IconBtn title="Delete" danger onClick={() => setConfirm(u)}><Trash2 size={14} /></IconBtn>}
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {filtered.map((u) => {
+              const isSuspendPending = pendingKey === `suspend:${u.uid}`;
+              const isResetPending   = pendingKey === `reset:${u.uid}`;
+              const isPlanPending    = pendingKey === `plan:${u.uid}`;
+              const isDeletePending  = pendingKey === `delete:${u.uid}`;
+              const anyPending = Boolean(pendingKey);
+              return (
+                <tr key={u.uid} className={`border-b-[0.5px] border-black/5 ${u.suspended ? "opacity-50" : ""}`}>
+                  <td className="px-3 py-2"><div className="text-navy font-medium flex items-center gap-1.5">{u.name || "—"}{u.isDefaultAdmin && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-tax/10 text-tax inline-flex items-center gap-0.5"><ShieldCheck size={10} /> Protected</span>}{u.suspended && <span className="text-[10px] text-crisis">suspended</span>}</div><div className="text-slate-400">{u.email}</div></td>
+                  <td className="px-3 py-2 text-slate-500">{fmtDate(u.createdAt)}</td>
+                  <td className="px-3 py-2 text-slate-500">{fmtDate(u.lastActive)}</td>
+                  <td className="px-3 py-2">{u.onboarded ? <span className="text-finance">Yes</span> : <span className="text-slate-400">No</span>}</td>
+                  <td className="px-3 py-2 capitalize">{u.plan || "free"}</td>
+                  <td className="px-3 py-2"><span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${u.role === "admin" ? "bg-tax/10 text-tax" : "bg-slate-100 text-slate-500"}`}>{u.role || "user"}</span></td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center justify-end gap-1">
+                      {/* Default admin: Suspend + Delete are hidden (protected). */}
+                      {!u.isDefaultAdmin && (
+                        <IconBtn
+                          title={u.suspended ? "Unsuspend" : "Suspend"}
+                          onClick={() => onSuspend(u, !u.suspended)}
+                          pending={isSuspendPending}
+                          disabled={anyPending}
+                        >
+                          <Ban size={14} />
+                        </IconBtn>
+                      )}
+                      <IconBtn
+                        title="Reset onboarding"
+                        onClick={() => onResetOnboarding(u.uid)}
+                        pending={isResetPending}
+                        disabled={anyPending}
+                      >
+                        <RotateCcw size={14} />
+                      </IconBtn>
+                      <IconBtn
+                        title="Toggle plan"
+                        onClick={() => onChangePlan(u.uid, (u.plan || "free") === "free" ? "pro" : "free")}
+                        pending={isPlanPending}
+                        disabled={anyPending}
+                      >
+                        <ArrowLeftRight size={14} />
+                      </IconBtn>
+                      {!u.isDefaultAdmin && (
+                        <IconBtn
+                          title="Delete"
+                          danger
+                          onClick={() => setConfirm(u)}
+                          pending={isDeletePending}
+                          disabled={anyPending}
+                        >
+                          <Trash2 size={14} />
+                        </IconBtn>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
             {filtered.length === 0 && <tr><td colSpan={7} className="px-3 py-6 text-center text-slate-400">No users.</td></tr>}
           </tbody>
         </table>
@@ -153,8 +195,30 @@ function UsersTab({ users, onSuspend, onResetOnboarding, onChangePlan, onDeleteU
   );
 }
 
-function IconBtn({ children, title, onClick, danger }: { children: ReactNode; title: string; onClick: () => void; danger?: boolean }) {
-  return <button title={title} onClick={onClick} className={`w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 ${danger ? "hover:bg-crisis/10 hover:text-crisis" : "hover:bg-surface hover:text-navy"}`}>{children}</button>;
+function IconBtn({
+  children, title, onClick, danger, pending, disabled,
+}: {
+  children: ReactNode;
+  title: string;
+  onClick: () => void;
+  danger?: boolean;
+  pending?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      disabled={disabled || pending}
+      className={`w-7 h-7 flex items-center justify-center rounded-lg
+        ${danger ? "hover:bg-crisis/10 hover:text-crisis" : "hover:bg-surface hover:text-navy"}
+        ${disabled || pending ? "opacity-40 cursor-not-allowed" : "text-slate-400"}`}
+    >
+      {pending
+        ? <span className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+        : children}
+    </button>
+  );
 }
 
 function Toggle({ on, onClick }: { on: boolean; onClick: () => void }) {

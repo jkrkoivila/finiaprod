@@ -11,6 +11,12 @@ interface TopBarProps {
   /** Result/error of the last sync (e.g. "Found 2 bills, 1 deadline"). */
   note?: string | null;
   noteError?: boolean;
+  /**
+   * Latest syncRun detail line: branch + scan count.
+   * E.g. "first-90d · scanned 247 msgs" — surfaced under the sync note
+   * so "no items found" is never ambiguous.
+   */
+  syncDetail?: string | null;
   onSync: () => void;
   onAddTask: () => void;
 }
@@ -30,6 +36,7 @@ export default function TopBar({
   syncing,
   note,
   noteError,
+  syncDetail,
   onSync,
   onAddTask,
 }: TopBarProps) {
@@ -39,6 +46,17 @@ export default function TopBar({
     day: "numeric",
     month: "long",
   });
+
+  // Sub-label: show syncDetail when it's available and there's no error to take priority.
+  const subLabel = syncing
+    ? "Syncing…"
+    : note
+    ? noteError
+      ? note
+      : `${note}${lastSynced ? ` · ${lastSynced}` : ""}`
+    : lastSynced
+    ? `Last synced ${lastSynced}`
+    : "Not synced yet";
 
   return (
     <header className="h-16 shrink-0 bg-white border-b-[0.5px] border-black/10 flex items-center justify-between gap-3 px-3 sm:px-5">
@@ -79,16 +97,14 @@ export default function TopBar({
           <span className="flex flex-col items-start leading-none">
             <span className="text-[12px] text-navy font-medium">Sync now</span>
             <span className={`text-[10px] mt-0.5 ${noteError ? "text-crisis" : "text-slate-400"}`}>
-              {syncing
-                ? "Syncing…"
-                : note
-                ? noteError
-                  ? note
-                  : `${note}${lastSynced ? ` · ${lastSynced}` : ""}`
-                : lastSynced
-                ? `Last synced ${lastSynced}`
-                : "Not synced yet"}
+              {subLabel}
             </span>
+            {/* Detail line: branch + scan count — only shown when not an error */}
+            {!syncing && !noteError && syncDetail && (
+              <span className="text-[9px] mt-0.5 text-slate-300 truncate max-w-[140px]">
+                {syncDetail}
+              </span>
+            )}
           </span>
         </button>
 
